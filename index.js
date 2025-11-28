@@ -46,6 +46,9 @@ async function renderPrediction() {
   });
 
   if (predictions.length > 0) {
+    let normalizedX = 0;
+    let normalizedY = 0;
+
     predictions.forEach((prediction) => {
       positionXLeftIris = prediction.annotations.leftEyeIris[0][0];
       positionYLeftIris = prediction.annotations.leftEyeIris[0][1];
@@ -65,31 +68,29 @@ async function renderPrediction() {
           faceBottomLeftX
         );
 
-        if (normalizedXIrisPosition > 0.355) {
-          event = "RIGHT";
-        } else if (normalizedXIrisPosition < 0.315) {
-          event = "LEFT";
-        } else {
-          amountStraightEvents++;
-          if (amountStraightEvents > 8) {
-            event = "STRAIGHT";
-            amountStraightEvents = 0;
-          }
-        }
-
         const normalizedYIrisPosition = normalize(
           positionYLeftIris,
           faceTopRightY,
           faceBottomLeftY
         );
 
-        if (normalizedYIrisPosition > 0.62) {
-          event = "TOP";
-        }
+        // Convert normalized positions (0-1) to range (-1 to 1) for eye movement
+        // Center is 0.335 for X, 0.5 for Y
+        normalizedX = (normalizedXIrisPosition - 0.335) * 3.0; // Scale for visibility
+        normalizedY = (normalizedYIrisPosition - 0.5) * 2.0;
+
+        // Clamp to -1 to 1 range
+        normalizedX = Math.max(-1, Math.min(1, normalizedX));
+        normalizedY = Math.max(-1, Math.min(1, normalizedY));
+
+        // Return continuous coordinates instead of discrete directions
+        event = { x: normalizedX, y: normalizedY };
       }
     });
+
+    return event;
   }
-  return event;
+  return null;
 }
 
 const loadModel = async () => {
